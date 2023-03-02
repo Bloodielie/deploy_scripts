@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  api:
+    image: <link_to_be_image>
+    entrypoint: ["/start.sh"]
+    volumes:
+      - api-static:/app/static
+    env_file:
+      - ./.env
+    networks:
+      - "backend"
+    restart: always
+
+  celery:
+    image: <link_to_be_image>
+    command: bash -c "celery -A <settings_module> worker -l info -n samurai_worker -Ofair -P gevent -c 1000 --without-gossip --without-mingle --without-heartbeat"
+    volumes:
+      - api-static:/app/static
+    env_file:
+      - ./.env
+    networks:
+      - "backend"
+    restart: always
+
+  celery-beat:
+    image: <link_to_be_image>
+    command: bash -c "celery -A samurai beat -l info"
+    env_file:
+      - ./.env
+    networks:
+      - "backend"
+    restart: always
+
+  frontend:
+    image: <link_to_fe_image>
+    networks:
+      - "backend"
+    restart: always
+
+  app_nginx:
+    image: nginx:latest
+    container_name: nginx
+    restart: always
+    volumes:
+      - ./cfg/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - backend
+    depends_on:
+      - api
+
+networks:
+  backend:
+
+volumes:
+  api-static:
